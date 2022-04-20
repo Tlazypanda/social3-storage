@@ -1,22 +1,30 @@
-import React from "react";
+import * as React from "react";
 import "./App.css";
 import { Web3Storage } from "web3.storage/dist/bundle.esm.min.js";
-import { CircularProgress } from "@material-ui/core";
-import Table from "@material-ui/core/Table";
-import TableBody from "@material-ui/core/TableBody";
-import TableCell from "@material-ui/core/TableCell";
-import TableContainer from "@material-ui/core/TableContainer";
-import TableHead from "@material-ui/core/TableHead";
-import TableRow from "@material-ui/core/TableRow";
-import Paper from "@material-ui/core/Paper";
+import CircularProgress from "@mui/material/CircularProgress";
 import { token } from "./data";
-// import dotenv from "dotenv";
-// dotenv.config();
+import BackupIcon from "@mui/icons-material/Backup";
+import Button from "@mui/material/Button";
+import { styled } from "@mui/material/styles";
+import { Typography } from "@mui/material";
+import Link from "@mui/material/Link";
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert from "@mui/material/Alert";
+
+const Input = styled("input")({
+  display: "none",
+});
+
+const Alert = React.forwardRef(function Alert(props, ref) {
+  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
 
 const App = () => {
   const [filesInput, setFile] = React.useState([]);
   const [fileUploading, setFileUploading] = React.useState(false);
   const [retrivedFiles, setRetrivedFile] = React.useState([]);
+  const [fileSelected, setFileSelected] = React.useState(null);
+  const [open, setOpen] = React.useState(false);
 
   async function retrieveFiles(cid) {
     console.log(cid);
@@ -38,6 +46,8 @@ const App = () => {
     }
     console.log(retrivedFiles);
     setRetrivedFile(filesUp);
+    setOpen(true);
+    setFileSelected(null);
   }
 
   function makeStorageClient() {
@@ -45,12 +55,15 @@ const App = () => {
       token: token,
     });
   }
+
   const handleChange = (event) => {
     if (event.target.files[0]) {
       setFile((oldArr) => [...oldArr, event.target.files[0]]);
     }
     console.log(filesInput);
+    setFileSelected(event.target.files[0].name);
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFileUploading(true);
@@ -80,47 +93,76 @@ const App = () => {
     setFileUploading(false);
     retrieveFiles(rsp);
   };
+
+  const handleClose = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+
+    setOpen(false);
+  };
+
   return (
     <div className="App">
-      <h3>Certificate Upload</h3>
-      <form className="form">
-        <input
-          type="file"
-          name="data"
-          onChange={handleChange}
-          class="fileInput"
-        />
-        <button type="submit" className="btn" onClick={handleSubmit}>
-          Upload file
-        </button>
-        <div className="loader">
-          {fileUploading ? <CircularProgress /> : <></>}
-        </div>
-      </form>
-      <div>
-        <TableContainer component={Paper}>
-          <Table aria-label="simple table">
-            <TableHead>
-              <TableRow>
-                <TableCell>Link for the Certificate</TableCell>
-                <TableCell align="right">Name of file</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {retrivedFiles.map((file) => (
-                <TableRow key={file.name}>
-                  <TableCell component="th" scope="row">
-                    <a href={`https://${file.cid}.ipfs.dweb.link/${file.name}`}>
-                      View File
-                    </a>
-                  </TableCell>
-                  <TableCell align="right">{file.name}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+      <div className="headingContainer">
+        <Typography variant="h4">Certificate Upload</Typography>
       </div>
+      <div className="container">
+        <div className="formContainer">
+          <form className="form">
+            <div className="formField">
+              <label htmlFor="contained-button-file">
+                <Input
+                  id="contained-button-file"
+                  type="file"
+                  onChange={handleChange}
+                />
+                <Button variant="contained" component="span">
+                  <BackupIcon /> &nbsp;
+                  <Typography variant="body2"> Choose File</Typography>
+                </Button>
+                {fileSelected && <Typography>{fileSelected}</Typography>}
+              </label>
+            </div>
+            <div className="formButton">
+              <Button
+                variant="contained"
+                component="span"
+                type="submit"
+                className="btn"
+                onClick={handleSubmit}
+              >
+                Upload file
+              </Button>
+            </div>
+          </form>
+        </div>
+        {retrivedFiles.length > 0 && (
+          <div className="listContainer">
+            {retrivedFiles.map((file) => (
+              <div key={file.name} className="listItem">
+                <div>{file.name}</div>
+                <div>
+                  <Link
+                    href={`https://${file.cid}.ipfs.dweb.link/${file.name}`}
+                    underline="none"
+                  >
+                    View File
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="loader">
+          {fileUploading && <CircularProgress color="secondary" />}
+        </div>
+      </div>
+      <Snackbar open={open} autoHideDuration={4000} onClose={handleClose}>
+        <Alert onClose={handleClose} severity="success" sx={{ width: "100%" }}>
+          File Uploaded Succesfully
+        </Alert>
+      </Snackbar>
     </div>
   );
 };
